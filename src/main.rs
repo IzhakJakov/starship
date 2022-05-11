@@ -13,16 +13,11 @@ use starship::context::{Properties, Target};
 use starship::module::ALL_MODULES;
 use starship::*;
 
-fn long_version() -> &'static str {
-    let ver = Box::new(crate::shadow::clap_long_version());
-    Box::leak(ver).as_str()
-}
-
 #[derive(Parser, Debug)]
 #[clap(
     author=crate_authors!(),
     version=shadow::PKG_VERSION,
-    long_version=long_version(),
+    long_version=shadow::CLAP_LONG_VERSION,
     about="The cross-shell prompt for astronauts. ☄🌌️",
     subcommand_required=true,
     arg_required_else_help=true,
@@ -60,7 +55,7 @@ enum Commands {
     ///  Prints a specific prompt module
     Module {
         /// The name of the module to be printed
-        #[clap(required = true, required_unless_present = "list")]
+        #[clap(required_unless_present("list"))]
         name: Option<String>,
         /// List out all supported modules
         #[clap(short, long)]
@@ -102,6 +97,9 @@ enum Commands {
         #[clap(default_value = "disabled")]
         value: String,
     },
+    #[cfg(feature = "config-schema")]
+    /// Generate a schema for the starship configuration as JSON-schema
+    ConfigSchema,
 }
 
 fn main() {
@@ -189,8 +187,9 @@ fn main() {
                 if let Some(value) = value {
                     configure::update_configuration(&name, &value)
                 }
-            } else {
-                configure::edit_configuration()
+            } else if let Err(reason) = configure::edit_configuration(None) {
+                eprintln!("Could not edit configuration: {}", reason);
+                std::process::exit(1);
             }
         }
         Commands::PrintConfig { default, name } => configure::print_configuration(default, &name),
@@ -221,6 +220,8 @@ fn main() {
                 .map(char::from)
                 .collect::<String>()
         ),
+        #[cfg(feature = "config-schema")]
+        Commands::ConfigSchema => print::print_schema(),
     }
 }
 

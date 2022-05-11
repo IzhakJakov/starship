@@ -2,6 +2,7 @@
 mod aws;
 mod azure;
 mod buf;
+mod c;
 mod character;
 mod cmake;
 mod cmd_duration;
@@ -27,6 +28,7 @@ mod git_metrics;
 mod git_state;
 mod git_status;
 mod golang;
+mod haskell;
 mod helm;
 mod hg_branch;
 mod hostname;
@@ -58,6 +60,7 @@ mod scala;
 mod shell;
 mod shlvl;
 mod singularity;
+mod spack;
 mod status;
 mod sudo;
 mod swift;
@@ -76,7 +79,7 @@ mod battery;
 #[cfg(feature = "battery")]
 pub use self::battery::{BatteryInfoProvider, BatteryInfoProviderImpl};
 
-use crate::config::RootModuleConfig;
+use crate::config::ModuleConfig;
 use crate::context::{Context, Shell};
 use crate::module::Module;
 use std::time::Instant;
@@ -92,6 +95,7 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             #[cfg(feature = "battery")]
             "battery" => battery::module(context),
             "buf" => buf::module(context),
+            "c" => c::module(context),
             "character" => character::module(context),
             "cmake" => cmake::module(context),
             "cmd_duration" => cmd_duration::module(context),
@@ -115,6 +119,7 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "git_state" => git_state::module(context),
             "git_status" => git_status::module(context),
             "golang" => golang::module(context),
+            "haskell" => haskell::module(context),
             "helm" => helm::module(context),
             "hg_branch" => hg_branch::module(context),
             "hostname" => hostname::module(context),
@@ -146,6 +151,7 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "shell" => shell::module(context),
             "shlvl" => shlvl::module(context),
             "singularity" => singularity::module(context),
+            "spack" => spack::module(context),
             "swift" => swift::module(context),
             "status" => status::module(context),
             "sudo" => sudo::module(context),
@@ -157,6 +163,12 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "vagrant" => vagrant::module(context),
             "vcsh" => vcsh::module(context),
             "zig" => zig::module(context),
+            // Added for tests, avoid potential side effects in production code.
+            #[cfg(test)]
+            custom if custom.starts_with("custom.") => {
+                // SAFETY: We just checked that the module starts with "custom."
+                custom::module(custom.strip_prefix("custom.").unwrap(), context)
+            }
             _ => {
                 eprintln!("Error: Unknown module {}. Use starship module --list to list out all supported modules.", module);
                 None
@@ -182,6 +194,7 @@ pub fn description(module: &str) -> &'static str {
         "azure" => "The current Azure subscription",
         "battery" => "The current charge of the device's battery and its current charging status",
         "buf" => "The currently installed version of the Buf CLI",
+        "c" => "Your C compiler type",
         "character" => {
             "A character (usually an arrow) beside where the text is entered in your terminal"
         }
@@ -208,6 +221,7 @@ pub fn description(module: &str) -> &'static str {
         "git_state" => "The current git operation, and it's progress",
         "git_status" => "Symbol representing the state of the repo",
         "golang" => "The currently installed version of Golang",
+        "haskell" => "The selected version of the Haskell toolchain",
         "helm" => "The currently installed version of Helm",
         "hg_branch" => "The active branch of the repo in your current directory",
         "hostname" => "The system hostname",
@@ -239,6 +253,7 @@ pub fn description(module: &str) -> &'static str {
         "shell" => "The currently used shell indicator",
         "shlvl" => "The current value of SHLVL",
         "singularity" => "The currently used Singularity image",
+        "spack" => "The current spack environment, if $SPACK_ENV is set",
         "status" => "The status of the last command",
         "sudo" => "The sudo credentials are currently cached",
         "swift" => "The currently installed version of Swift",
